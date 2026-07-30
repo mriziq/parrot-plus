@@ -141,6 +141,7 @@ struct Run: ParsableCommand {
                             ))
                             await MainActor.run {
                                 TextInjector.inject(text)
+                                menuBar.setLastTranscript(text)
                                 overlay?.hide()
                                 menuBar.setRecording(false)
                             }

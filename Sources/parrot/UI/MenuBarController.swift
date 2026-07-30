@@ -8,7 +8,9 @@ final class MenuBarController {
     private let statusItem: NSStatusItem
     private let modelLabel: NSMenuItem
     private let stateLabel: NSMenuItem
+    private let pasteItem: NSMenuItem
     private let modelID: String
+    private var lastTranscript: String?
 
     init(modelID: String) {
         self.modelID = modelID
@@ -24,6 +26,17 @@ final class MenuBarController {
         modelLabel = NSMenuItem(title: "model: \(modelID)", action: nil, keyEquivalent: "")
         modelLabel.isEnabled = false
         menu.addItem(modelLabel)
+
+        menu.addItem(.separator())
+
+        pasteItem = NSMenuItem(
+            title: "Paste Last Transcript",
+            action: #selector(pasteClicked),
+            keyEquivalent: ""
+        )
+        pasteItem.target = self
+        pasteItem.isEnabled = false
+        menu.addItem(pasteItem)
 
         menu.addItem(.separator())
 
@@ -45,6 +58,15 @@ final class MenuBarController {
 
     func setTranscribing() {
         stateLabel.title = "transcribing…"
+    }
+
+    func setLastTranscript(_ text: String) {
+        // Silence can sanitize down to "" — don't clobber a useful transcript.
+        guard !text.isEmpty else { return }
+        lastTranscript = text
+        let preview = text.count > 40 ? text.prefix(40) + "…" : text
+        pasteItem.title = "Paste: “\(preview)”"
+        pasteItem.isEnabled = true
     }
 
     private func configureButton(recording: Bool) {
@@ -76,6 +98,15 @@ final class MenuBarController {
         // Menu-bar status icons are nominally 18pt tall; size the SVG to match.
         image.size = NSSize(width: 16, height: 16)
         return image
+    }
+
+    @objc private func pasteClicked() {
+        guard let text = lastTranscript else { return }
+        // Delay so the menu finishes closing and focus returns to the previous
+        // app before the synthetic keystrokes land.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            TextInjector.inject(text)
+        }
     }
 
     @objc private func quitClicked() {
