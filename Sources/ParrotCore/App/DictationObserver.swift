@@ -30,7 +30,7 @@ enum DictationError: Error {
     case cancelled
 }
 
-/// Follows the dictation loop: the overlay, the menu bar, and later stats.
+/// Follows the dictation loop: the overlay, menu bar, and latency log.
 ///
 /// `DictationController` calls these on the main actor, in the order the
 /// observers were registered. Every method has an empty default, so an

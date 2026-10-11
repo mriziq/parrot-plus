@@ -49,13 +49,6 @@ struct Run: ParsableCommand {
 
     @Option(
         name: .long,
-        help: "How the microphone is run: \(CaptureMode.allCases.map(\.rawValue).joined(separator: ", ")) (default \(CaptureMode.standard.rawValue)).",
-        transform: parseCaptureMode
-    )
-    var capture: CaptureMode = .standard
-
-    @Option(
-        name: .long,
         help: "Push-to-talk key for this run only, overriding Settings: \(HotkeyKey.allCases.map(\.rawValue).joined(separator: ", ")).",
         transform: parseHotkey
     )
@@ -75,7 +68,6 @@ struct Run: ParsableCommand {
                 noOverlay: noOverlay,
                 model: model,
                 injectMode: injectMode,
-                captureMode: capture,
                 hotkey: hotkey
             ))
         } catch let failure as StartupFailure {
@@ -141,10 +133,10 @@ struct Install: ParsableCommand {
         abstract: "Set up launch at login and the parrot command, or remove them."
     )
 
-    @Flag(name: .long, help: "Start Parrot.app at login, and start it now.")
+    @Flag(name: .long, help: "Start Parrot Plus.app at login, and start it now.")
     var launchAtLogin: Bool = false
 
-    @Flag(name: .long, help: "Link /usr/local/bin/parrot to the executable in Parrot.app.")
+    @Flag(name: .long, help: "Link /usr/local/bin/parrot to the executable in Parrot Plus.app.")
     var cli: Bool = false
 
     @Flag(name: .long, help: "Stop starting at login, quit Parrot, and remove its logs.")
@@ -166,14 +158,6 @@ struct Install: ParsableCommand {
             }
         }
     }
-}
-
-/// `--capture`: a `CaptureMode` by name.
-private func parseCaptureMode(_ raw: String) throws -> CaptureMode {
-    guard let mode = CaptureMode(rawValue: raw) else {
-        throw ValidationError("expected one of: \(CaptureMode.allCases.map(\.rawValue).joined(separator: ", "))")
-    }
-    return mode
 }
 
 /// `--hotkey`: a `HotkeyKey` by name.

@@ -11,7 +11,11 @@ final class SettingsTests: XCTestCase {
     }
 
     func testPartialObjectDecodesMissingKeysToDefaults() throws {
-        XCTAssertEqual(try decode(#"{"hotkey": {}, "stats": {}}"#), Settings())
+        XCTAssertEqual(try decode(#"{"hotkey": {}, "audio": {}, "stats": {}}"#), Settings())
+    }
+
+    func testRemovedSettingsSectionsAreIgnored() throws {
+        XCTAssertEqual(try decode(#"{"audio": {"device": "old"}, "stats": {"enabled": true}}"#), Settings())
     }
 
     func testUnknownKeysAreIgnored() throws {

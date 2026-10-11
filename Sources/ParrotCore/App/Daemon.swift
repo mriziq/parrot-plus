@@ -10,8 +10,6 @@ public struct DaemonOptions {
     public var model: String?
     /// How transcripts are inserted. Paste unless `--inject-mode` says otherwise.
     public var injectMode: InjectMode
-    /// How the microphone is run (#52). The standard mode unless `--capture` says otherwise.
-    public var captureMode: CaptureMode
     /// The push-to-talk key for this run only (#42). Nil uses the saved setting.
     public var hotkey: HotkeyKey?
 
@@ -22,7 +20,6 @@ public struct DaemonOptions {
         noOverlay: Bool,
         model: String?,
         injectMode: InjectMode = .paste,
-        captureMode: CaptureMode = .standard,
         hotkey: HotkeyKey? = nil
     ) {
         self.skipDoctor = skipDoctor
@@ -31,7 +28,6 @@ public struct DaemonOptions {
         self.noOverlay = noOverlay
         self.model = model
         self.injectMode = injectMode
-        self.captureMode = captureMode
         self.hotkey = hotkey
     }
 }
@@ -91,13 +87,11 @@ public enum Daemon {
         app.setActivationPolicy(.accessory)
 
         let monitor = HotkeyMonitor(key: options.hotkey ?? settings.current.hotkey.key, debug: options.debugHotkey)
-        let capture = AudioCapture(mode: options.captureMode)
+        let capture = AudioCapture()
         let overlay: RecordingOverlay? = options.noOverlay ? nil : RecordingOverlay()
         if let overlay {
             capture.onLevel = { level in overlay.pushLevel(level) }
         }
-        // Before the menu, which shows "Check for Updates…" only when running.
-        if AppLaunch.isApp { Updater.start() }
         let menuBar = MenuBarController(modelID: model.id)
         let settingsWindow = SettingsWindow(store: settings)
         menuBar.onOpenSettings = { settingsWindow.show() }
@@ -144,15 +138,26 @@ public enum Daemon {
         if let overlay { observers.append(overlay) }
         observers.append(menuBar)
         observers.append(LatencyLog())
+        let delivery = TextDelivery(mode: options.injectMode)
         let controller = DictationController(
             capture: capture,
             transcriber: transcriber,
             processors: [DictionaryProcessor(store: dictionary)],
             observers: observers,
             dumpWav: options.dumpWav,
-            delivery: TextDelivery(mode: options.injectMode),
+            delivery: delivery,
             context: dictionaryContext
         )
+        controller.onTranscriptDelivered = { [weak menuBar] text in
+            menuBar?.setLastTranscript(text)
+        }
+        menuBar.onPasteLastTranscript = { text in
+            do {
+                try delivery.deliver(text, focusAtStart: nil)
+            } catch {
+                Log.info("Paste Last Transcript: \(error)")
+            }
+        }
         switcher.controller = controller
 
         // Each setting applies itself here when it changes, from the window

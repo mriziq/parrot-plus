@@ -89,10 +89,10 @@ final class HALInputTests: XCTestCase {
         }
     }
 
-    func testOnlyThePreparedModeKeepsTheUnitBetweenPresses() {
-        XCTAssertTrue(CaptureMode.engine.makeInput() is EngineInput)
+    func testCaptureModesUseHALInput() {
         XCTAssertEqual((CaptureMode.hal.makeInput() as? HALInput)?.keepsPrepared, false)
         XCTAssertEqual((CaptureMode.prepared.makeInput() as? HALInput)?.keepsPrepared, true)
+        XCTAssertNil(CaptureMode(rawValue: "engine"))
         XCTAssertEqual(CaptureMode(rawValue: "prepared"), .prepared)
         XCTAssertEqual(CaptureMode.standard, .hal)
     }

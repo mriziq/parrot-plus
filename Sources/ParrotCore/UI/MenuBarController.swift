@@ -5,8 +5,8 @@ import AppKit
 /// (since we run as `.accessory` — no dock icon, no main window).
 ///
 /// The menu has named slots, top to bottom: `statusLine`, `modelLine`,
-/// `grantPermissionsItem`, `settingsItem`, `checkForUpdatesItem`, `quitItem`. Features update a slot
-/// rather than rebuilding the menu.
+/// `grantPermissionsItem`, `pasteLastTranscriptItem`, `settingsItem`,
+/// `quitItem`. Features update a slot rather than rebuilding the menu.
 @MainActor
 final class MenuBarController {
     private static func readyStatus(_ key: HotkeyKey) -> String { "idle · hold \(key.shortName) to dictate" }
@@ -23,12 +23,14 @@ final class MenuBarController {
     var onGrantPermissions: (() -> Void)?
     /// Slot: opens the Settings window (#41) through `onOpenSettings`.
     let settingsItem: NSMenuItem
+    /// Re-pastes the latest successfully delivered transcript.
+    let pasteLastTranscriptItem: NSMenuItem
+    private var lastTranscript = LastTranscript()
+    /// Wired by the daemon to the normal guarded text-delivery path.
+    var onPasteLastTranscript: ((String) -> Void)?
     /// Called by Settings…; set by the daemon, which owns the window.
     var onOpenSettings: (() -> Void)?
-    /// Slot: asks Sparkle to check now. Hidden unless the updater is running,
-    /// which it is only in Parrot.app's release builds.
-    let checkForUpdatesItem: NSMenuItem
-    /// Slot: quits parrot.
+    /// Slot: quits Parrot Plus.
     let quitItem: NSMenuItem
 
     /// A degraded hotkey tap replaces the idle line, so the menu bar does not
@@ -66,16 +68,16 @@ final class MenuBarController {
         settingsItem = NSMenuItem(title: "Settings…", action: #selector(settingsClicked), keyEquivalent: ",")
         menu.addItem(settingsItem)
 
-        checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
-            action: #selector(checkForUpdatesClicked),
+        pasteLastTranscriptItem = NSMenuItem(
+            title: "Paste Last Transcript",
+            action: #selector(pasteLastTranscriptClicked),
             keyEquivalent: ""
         )
-        checkForUpdatesItem.isHidden = !Updater.isRunning
-        menu.addItem(checkForUpdatesItem)
+        pasteLastTranscriptItem.isEnabled = false
+        menu.insertItem(pasteLastTranscriptItem, at: menu.index(of: settingsItem))
 
         quitItem = NSMenuItem(
-            title: "Quit parrot",
+            title: "Quit Parrot Plus",
             action: #selector(quitClicked),
             keyEquivalent: "q"
         )
@@ -84,7 +86,7 @@ final class MenuBarController {
         statusItem.menu = menu
         quitItem.target = self
         settingsItem.target = self
-        checkForUpdatesItem.target = self
+        pasteLastTranscriptItem.target = self
         grantPermissionsItem.target = self
         configureButton()
     }
@@ -105,6 +107,11 @@ final class MenuBarController {
 
     func setModel(_ modelID: String) {
         modelLine.title = "model: \(modelID)"
+    }
+
+    func setLastTranscript(_ text: String) {
+        lastTranscript.update(text)
+        pasteLastTranscriptItem.isEnabled = lastTranscript.text != nil
     }
 
     private func configureButton() {
@@ -146,8 +153,13 @@ final class MenuBarController {
         onGrantPermissions?()
     }
 
-    @objc private func checkForUpdatesClicked() {
-        Updater.checkForUpdates()
+    @objc private func pasteLastTranscriptClicked() {
+        guard let text = lastTranscript.text else { return }
+        // Let AppKit close the menu before checking the currently focused field.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(200))
+            self?.onPasteLastTranscript?(text)
+        }
     }
 
     @objc private func quitClicked() {

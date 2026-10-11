@@ -2,7 +2,7 @@ import AppKit
 import ApplicationServices
 import Foundation
 
-/// Parrot.app, when this process runs from it.
+/// Parrot Plus.app, when this process runs from it.
 ///
 /// One executable, two roles: launched by LaunchServices (Finder, `open`,
 /// the login item) it is the menu-bar app; run from a terminal, usually
@@ -12,7 +12,7 @@ public enum AppBundle {
     /// so it never changes (ADR-005).
     static let identifier = "com.humanitas.parrot"
 
-    /// The bundle's URL when the main bundle is Parrot.app, else nil (a bare
+    /// The bundle's URL when the main bundle is Parrot Plus.app, else nil (a bare
     /// `swift build` binary).
     static var current: URL? {
         let url = Bundle.main.bundleURL
@@ -77,7 +77,7 @@ public enum AppLaunch {
     }
 
     /// Runs before the dictation loop when `launchedAsApp`. Exits the process
-    /// if another Parrot is already running or the app runs from the DMG.
+    /// if another Parrot is already running.
     @MainActor
     public static func prepare() {
         isApp = true
@@ -92,16 +92,7 @@ public enum AppLaunch {
         }
 
         NSApplication.shared.setActivationPolicy(.accessory)
-        guard let bundle = AppBundle.current, let executable = Bundle.main.executableURL else { return }
-
-        if isOnDiskImageOrTranslocated(bundle) {
-            _ = alert(
-                "Move Parrot to Applications",
-                "Parrot is running from the disk image. Drag it to the Applications folder, then open it from there.",
-                buttons: ["Quit"]
-            )
-            exit(0)
-        }
+        guard AppBundle.current != nil, let executable = Bundle.main.executableURL else { return }
 
         migrateLegacyInstall(executable: executable)
     }
@@ -174,9 +165,9 @@ public enum AppLaunch {
                 + "Replace it with a link to this app, so the parrot command always runs this version?"
             action = "Replace"
         case .linkedElsewhere(let destination):
-            // A link into some other Parrot.app that no longer exists; never
+            // A link into an old or current Parrot app that no longer exists; never
             // a link the user pointed at something of their own.
-            guard destination.contains("Parrot.app/"),
+            guard destination.contains("Parrot.app/") || destination.contains("Parrot Plus.app/"),
                   !FileManager.default.fileExists(atPath: destination) else { return }
             title = "Update the parrot command?"
             message = "\(link.path) points to a Parrot that is no longer there. Point it at this app?"
@@ -256,13 +247,6 @@ public enum AppLaunch {
         } catch {
             // Logging is best effort; the app still runs.
         }
-    }
-
-    private static func isOnDiskImageOrTranslocated(_ bundle: URL) -> Bool {
-        let path = bundle.path
-        if path.contains("/AppTranslocation/") { return true }
-        let values = try? bundle.resourceValues(forKeys: [.volumeIsReadOnlyKey])
-        return values?.volumeIsReadOnly == true
     }
 
     @MainActor

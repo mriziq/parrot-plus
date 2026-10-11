@@ -31,14 +31,14 @@ Parrot is a macOS menu-bar dictation app. Hold a key, speak, release, and the tr
 2. **On-device.** No network calls for transcription. Audio never leaves the machine.
 3. **Minimal surface.** A menu-bar item, a small recording pill, and one settings window. No dock icon, no main window.
 4. **Your words.** A custom dictionary biases the model toward the names and terms you use, and fixes what it still gets wrong.
-5. **Trustworthy by construction.** Transcript text is never written to logs or disk. The app is signed and notarized, so permissions survive updates.
+5. **Trustworthy by construction.** Transcript text is never written to logs or disk. Dictation runs on-device.
 6. **Pluggable engines.** Whisper (WhisperKit) today, Parakeet and Apple SpeechAnalyzer behind the same protocol.
 
 ### 1.2 — Non-goals
 
 - Cross-platform. Parrot depends on CoreML and the Apple Neural Engine.
 - Cloud transcription providers.
-- Transcript history or search. Stats keep counts only.
+- Transcript history or search.
 - Meeting recording and diarization. They may come later as a separate mode.
 
 ## 2. Targets
@@ -50,7 +50,7 @@ Package.swift
   ParrotTests     tests       unit tests against ParrotCore
 ```
 
-`Parrot.app` wraps the `parrot` executable in a signed bundle. The same binary runs as the app (launched by `SMAppService` or from Finder) and as the CLI (through a symlink). Launching with no subcommand runs the dictation loop.
+`Parrot Plus.app` wraps the `parrot` executable in a signed bundle. The same binary runs as the app (launched by `SMAppService` or from Finder) and as the CLI (through a symlink). Launching with no subcommand runs the dictation loop.
 
 The executable holds no logic beyond parsing flags and calling ParrotCore. Anything worth testing lives in ParrotCore.
 
@@ -67,7 +67,6 @@ Sources/ParrotCore/
     Onboarding.swift            when the onboarding window shows, its menus, and what Get Started saves (pure, tested)
     Daemon.swift                the `run` command: startup, wiring, run loop
     ModelSwitcher.swift         a model change while running: loads the new model behind the menu bar, swaps it in between dictations
-    Updater.swift               Sparkle auto-update, started only in the app role
     AppLaunch.swift             the app role: bundle detection, single instance, migration off the old LaunchAgent
     LoginItem.swift, CommandLineLink.swift
                                 launch at login (SMAppService) and the `parrot` symlink into the bundle
@@ -90,7 +89,6 @@ Sources/ParrotCore/
   Audio/
     AudioCapture.swift          capture: permission and device checks, format conversion, per-capture stats
     CaptureInput.swift          CaptureMode and the protocol each way of running the mic implements
-    EngineInput.swift           the AVAudioEngine input, fresh per press (`--capture engine`, the default before #52)
     HALInput.swift              the Core Audio AUHAL input unit (default), per press or prepared between presses, and the device watcher
     HostClock.swift             host time in nanoseconds, to compare a press with Core Audio buffer timestamps
     SilenceTrimmer.swift        cuts leading and trailing silence before transcription (pure, tested)
@@ -113,8 +111,6 @@ Sources/ParrotCore/
     DictionarySettings.swift    the example sentences, one per language, in settings.json
     DictionaryProcessor.swift   the replacement pass
     DictionaryContext.swift     the example sentence for the active language, as the prompt
-  Stats/
-    StatsRecorder.swift         counts only, as a DictationObserver
   UI/
     MenuBarController.swift
     RecordingOverlay.swift
@@ -126,7 +122,7 @@ Sources/ParrotCore/
 Sources/parrot/
   main.swift                    ArgumentParser commands: run, setup, doctor, models, install
 
-Sources/parrot-bench/           developer benchmarks, never shipped in Parrot.app (`swift run -c release parrot-bench …`)
+Sources/parrot-bench/           developer benchmarks, never shipped in Parrot Plus.app (`swift run -c release parrot-bench …`)
   main.swift                    ArgumentParser commands: transcription, capture
   TranscriptionBench.swift      the model over a folder of recordings: median and p90 per stage, word error rate
   CaptureBench.swift            press-to-first-sample, cold and warm, per capture mode
@@ -164,7 +160,7 @@ HotkeyMonitor ──flags──▶ Gesture ──start/stop──▶ DictationCo
                                         clipboard if focus moved; discard in a password field
                                                      │
                                                      ▼
-                              DictationObservers: overlay, menu bar, stats, latency log
+                              DictationObservers: overlay, menu bar, latency log
 ```
 
 `DictationController` owns the state machine (`idle`, `recording`, `transcribing`) and nothing else. It is `@MainActor`. Transcription runs off the main actor; the controller awaits it.
@@ -179,8 +175,8 @@ Features plug in at one of these points. They do not add branches to `DictationC
 | `TranscriptProcessor` | `func process(_ transcript: Transcript) -> Transcript`, synchronous, pure where possible | dictionary replacements; future cleanup passes |
 | Delivery decision | chooses injector or fallback from the `FocusSnapshot` and the result | secure fields and focus drift |
 | Delivery spacing | `Spacing.spaced`: a trailing space always, a leading one when the text before the cursor needs it | a space between dictations |
-| `DictationObserver` | `dictationStarted`, `dictationTranscribing`, `dictationFinished(DictationResult)`, `dictationFailed`; each has an empty default | overlay, menu bar, stats, latency |
-| `Settings` sections | a field in `Settings` plus a view in `UI/Sections/` | hotkey, model, language, dictionary editor, input device, stats |
+| `DictationObserver` | `dictationStarted`, `dictationTranscribing`, `dictationFinished(DictationResult)`, `dictationFailed`; each has an empty default | overlay, menu bar, latency |
+| `Settings` sections | a field in `Settings` plus a view in `UI/Sections/` | hotkey, model, language, dictionary editor |
 
 ## 5. Settings
 
@@ -195,7 +191,7 @@ Every location comes from `Paths`. No other code builds a path.
 | Location | Contents |
 |---|---|
 | `~/.config/parrot/` | `settings.json`, `dictionary` (a plain-text table; see [dictionary.md](dictionary.md)): what the user edits and may keep in dotfiles. `$XDG_CONFIG_HOME/parrot/` when that is set |
-| `~/Library/Application Support/parrot/` | `models/`, `stats.json`: downloaded data and machine state |
+| `~/Library/Application Support/parrot/` | `models/`: downloaded model weights |
 | `~/Library/Logs/parrot/` | daemon logs, owner-only; timings and lengths, never transcript text |
 | `~/Library/Caches/parrot/` | `--dump-wav` debug captures, owner-only |
 
@@ -209,17 +205,17 @@ Everything after the checks happens behind the menu-bar icon, so the app is neve
 
 ## 8. Rules
 
-1. Never write transcript text to logs, disk, or stats. The dictionary is the only user-authored text Parrot stores.
+1. Never write transcript text to logs or disk. The dictionary is the only user-authored text Parrot stores.
 2. Every on-disk location comes from `Paths`.
-3. Every persistent preference lives in `Settings` and changes through `SettingsStore`. No `UserDefaults`, no plist flags. The one exception is state Sparkle owns (last check time, the user's auto-install choice), which Sparkle keeps in the `com.humanitas.parrot` defaults domain.
+3. Every persistent preference lives in `Settings` and changes through `SettingsStore`. No `UserDefaults`, no plist flags.
 4. New behaviour after transcription is a `TranscriptProcessor` or a `DictationObserver`, not an edit to `DictationController`.
-5. Pure logic (gesture recognition, replacement pass, settings decoding, stats aggregation) has unit tests in `ParrotTests`.
+5. Pure logic (gesture recognition, replacement pass, settings decoding) has unit tests in `ParrotTests`.
 6. The event tap listens to `flagsChanged` only.
 7. Shared types are extended, not reshaped. A feature adds its settings to its own `…Settings` struct in its own folder, fills existing fields of `TranscriptionContext`, and uses existing `StartupFailure` cases. Adding a field or case to a shared type is fine; renaming or restructuring one needs its own change.
 
 ## 9. Permissions
 
-Parrot needs Microphone and Accessibility. macOS keys both grants to the app's code identity. With a Developer ID signature and a stable bundle identifier, grants survive updates. With an ad-hoc signature, each new build is a new identity, and the grant silently stops applying. That is why the signed bundle matters, and why `scripts/dev-install.sh` signs local builds with the Developer ID certificate.
+Parrot needs Microphone and Accessibility. macOS keys both grants to the app's code identity. The local build script uses a Developer ID identity if one is already available; otherwise it uses ad-hoc signing. Ad-hoc builds can require permissions to be granted again after rebuilding.
 
 A grant belongs to the process that asked: `parrot setup` grants the terminal, which covers foreground runs, but the launch-at-login daemon needs its own. So the daemon asks for itself. Without Accessibility it keeps running with "grant Accessibility to start" in the menu bar and starts the hotkey as soon as the grant appears; it never exits over it, because an exit would either leave the user with nothing running or, under a relaunching supervisor, re-fire the prompt.
 

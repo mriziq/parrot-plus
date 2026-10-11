@@ -13,7 +13,7 @@ public enum LoginItem {
     /// and start it now.
     public static func install() throws {
         guard let app = AppBundle.current else {
-            Log.error("launch at login needs Parrot.app. Install it from the DMG, then run this again.")
+            Log.error("launch at login needs Parrot Plus.app. Build and open the local app bundle, then run this command again from its bundled executable.")
             throw SilentExit(1)
         }
 

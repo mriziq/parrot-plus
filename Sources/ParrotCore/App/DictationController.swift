@@ -34,6 +34,8 @@ final class DictationController {
     private let observers: [DictationObserver]
     private let dumpWav: Bool
     private let delivery: TextDelivery
+    /// Called only after nonempty processed text was successfully delivered.
+    var onTranscriptDelivered: ((String) -> Void)?
     /// What to tell the transcriber about each dictation, asked once per
     /// release. Features such as the dictionary fill it; the controller only
     /// passes it on.
@@ -142,6 +144,9 @@ final class DictationController {
                 if case .failure(let error) = delivered {
                     observers.forEach { $0.dictationFailed(error) }
                     return
+                }
+                if !transcript.text.isEmpty {
+                    onTranscriptDelivered?(transcript.text)
                 }
                 let result = DictationResult(
                     captureDuration: seconds,

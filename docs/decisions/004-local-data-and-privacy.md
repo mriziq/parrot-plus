@@ -2,12 +2,12 @@
 
 Last updated: `2026.09.27`
 
-> Transcript text is never written to logs, disk, or stats. Everything Parrot keeps lives in fixed, owner-only locations: settings and the dictionary in `~/.config/parrot`, models and stats in Application Support, logs in Logs, debug captures in Caches.
+> Transcript text is never written to logs or disk. Everything Parrot keeps lives in fixed, owner-only locations: settings and the dictionary in `~/.config/parrot`, models in Application Support, logs in Logs, debug captures in Caches.
 
 ## 1. Decision
 
-- **No transcript text at rest.** Logs record timings and character counts. Stats record counts. The dictionary is the only user-authored text Parrot stores.
-- **Fixed locations.** `~/.config/parrot/` holds settings and the dictionary (ADR-002). `~/Library/Application Support/parrot/` holds models and stats. `~/Library/Logs/parrot/` holds daemon logs. `~/Library/Caches/parrot/` holds `--dump-wav` captures. `Paths` defines them all.
+- **No transcript text or usage statistics at rest.** Logs record diagnostics such as timings and character counts. The dictionary is the only user-authored text Parrot stores.
+- **Fixed locations.** `~/.config/parrot/` holds settings and the dictionary (ADR-002). `~/Library/Application Support/parrot/` holds models. `~/Library/Logs/parrot/` holds daemon logs. `~/Library/Caches/parrot/` holds `--dump-wav` captures. `Paths` defines them all.
 - **Owner-only.** Directories are 0700 and files 0600. Existing symlinks are refused, and new files are created with `O_EXCL | O_NOFOLLOW`.
 - **Models are downloaded into Application Support** by passing an explicit `downloadBase` to WhisperKit.
 
@@ -20,7 +20,7 @@ Models went to `~/Documents/huggingface`, the swift-transformers default. That t
 ## 3. Design Implications
 
 - Rule: every on-disk location comes from `Paths`; no other code builds a path.
-- Observers and stats receive `DictationResult`, which has no text field.
+- Observers receive `DictationResult`, which has no transcript text field.
 - Foreground commands (`setup`, `install`, `models download`) migrate old caches; the daemon never reads `~/Documents`.
 - Uninstall removes logs and caches, and leaves config and models.
 

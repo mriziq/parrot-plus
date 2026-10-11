@@ -16,11 +16,7 @@
 # gh render issues projection (GitHub is canonical)
 .issues/
 
-# app bundle and DMG (scripts/build-app.sh, scripts/make-dmg.sh)
+# local app bundle (scripts/build-app.sh)
 build/
-dist/
-
-# Vercel CLI link for site/ (perroquet.xyz)
-.vercel
 .env*
 .claude/worktrees/

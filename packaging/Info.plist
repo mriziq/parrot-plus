@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Parrot</string>
+	<string>Parrot Plus</string>
 	<key>CFBundleExecutable</key>
 	<string>parrot</string>
 	<key>CFBundleIconFile</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Parrot</string>
+	<string>Parrot Plus</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -31,20 +31,6 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © Humanitas Labs. MIT License.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Parrot records while you hold the dictation key and turns your speech into text on this Mac. Audio never leaves it.</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<key>SUFeedURL</key>
-	<string>https://github.com/humanitas-labs/parrot/releases/latest/download/appcast.xml</string>
-	<!-- Public half of the Parrot update key (generate_keys --account parrot). The private
-	     half is the SPARKLE_PRIVATE_KEY repository secret; release.yml checks they match. -->
-	<key>SUPublicEDKey</key>
-	<string>sBKarVRumHAb75Avth4zTROhclldBN+nUC3ffkhcoTw=</string>
-	<key>SURequireSignedFeed</key>
-	<true/>
-	<key>SUScheduledCheckInterval</key>
-	<integer>86400</integer>
-	<key>SUVerifyUpdateBeforeExtraction</key>
-	<true/>
+	<string>Parrot Plus records while you hold the dictation key and turns your speech into text on this Mac. Audio never leaves it.</string>
 </dict>
 </plist>
