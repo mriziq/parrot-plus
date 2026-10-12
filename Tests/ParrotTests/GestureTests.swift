@@ -13,10 +13,11 @@ final class GestureTests: XCTestCase {
         XCTAssertFalse(g.isHeld)
     }
 
-    func testShortHoldIsDiscarded() {
+    func testShortHoldOpensTheDoublePressWindow() {
         var g = Gesture()
         XCTAssertEqual(g.handle(down, at: 10), .start)
-        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.29), .cancel)
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.29), .tap)
+        // Up, but a second press still counts: not held.
         XCTAssertFalse(g.isHeld)
     }
 
@@ -65,6 +66,83 @@ final class GestureTests: XCTestCase {
         _ = g.handle(.hotkeyDown(othersHeld: true), at: 0)
         XCTAssertNil(g.reset())
         XCTAssertFalse(g.isHeld)
+    }
+
+    // MARK: Hands-free toggle
+
+    /// Tap, tap: the second press locks hands-free, the third stops it.
+    func testDoublePressLocksHandsFreeUntilTheNextPress() {
+        var g = Gesture()
+        XCTAssertEqual(g.handle(down, at: 10), .start)
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.1), .tap)
+        // Second press: nothing to do yet, recording runs on.
+        XCTAssertNil(g.handle(down, at: 10.3))
+        XCTAssertTrue(g.isHeld)
+        // Its release locks instead of stopping.
+        XCTAssertNil(g.handle(.hotkeyUp, at: 10.4))
+        XCTAssertFalse(g.isHeld)
+        // Next press stops and transcribes; its release is stray.
+        XCTAssertEqual(g.handle(down, at: 14), .transcribe)
+        XCTAssertNil(g.handle(.hotkeyUp, at: 14.1))
+        XCTAssertFalse(g.isHeld)
+    }
+
+    /// Tap, then a hold: an ordinary hold-to-talk, transcribing on release.
+    func testTapThenHoldTranscribesLikeAPlainHold() {
+        var g = Gesture()
+        XCTAssertEqual(g.handle(down, at: 10), .start)
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.1), .tap)
+        XCTAssertNil(g.handle(down, at: 10.3))
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 12), .transcribe)
+    }
+
+    func testWindowLapseDiscardsTheTap() {
+        var g = Gesture()
+        XCTAssertEqual(g.handle(down, at: 10), .start)
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.1), .tap)
+        XCTAssertEqual(g.timeout(), .cancel)
+        XCTAssertFalse(g.isHeld)
+        // A lapsed timer firing again, or with nothing pending, is harmless.
+        XCTAssertNil(g.timeout())
+    }
+
+    func testTimeoutOutsideTheWindowDoesNothing() {
+        var g = Gesture()
+        XCTAssertNil(g.timeout())
+        _ = g.handle(down, at: 0)
+        XCTAssertNil(g.timeout())
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 5), .transcribe)
+        XCTAssertNil(g.timeout())
+    }
+
+    func testChordOnTheSecondPressDiscardsInsteadOfLocking() {
+        var g = Gesture()
+        XCTAssertEqual(g.handle(down, at: 10), .start)
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.1), .tap)
+        XCTAssertEqual(g.handle(.hotkeyDown(othersHeld: true), at: 10.2), .cancel)
+    }
+
+    func testModifierDuringTheWindowDiscards() {
+        var g = Gesture()
+        XCTAssertEqual(g.handle(down, at: 10), .start)
+        XCTAssertEqual(g.handle(.hotkeyUp, at: 10.1), .tap)
+        XCTAssertEqual(g.handle(.otherModifier, at: 10.2), .cancel)
+        XCTAssertFalse(g.isHeld)
+    }
+
+    func testResetCancelsPendingAndHandsFree() {
+        var g = Gesture()
+        _ = g.handle(down, at: 0)
+        _ = g.handle(.hotkeyUp, at: 0.1)
+        XCTAssertEqual(g.reset(), .cancel)
+
+        var h = Gesture()
+        _ = h.handle(down, at: 0)
+        _ = h.handle(.hotkeyUp, at: 0.1)
+        _ = h.handle(down, at: 0.2)
+        _ = h.handle(.hotkeyUp, at: 0.25)
+        XCTAssertEqual(h.reset(), .cancel)
+        XCTAssertFalse(h.isHeld)
     }
 }
 

@@ -12,7 +12,8 @@ import Foundation
 /// event, because left and right share one `CGEventFlags` bit and the
 /// device-dependent low bits vary by keyboard. Fn is matched by its flag, as
 /// it always was. Edges go through `Gesture`, which discards short taps and
-/// chords, so a shortcut typed on the hotkey produces no text.
+/// chords — a tap first opens a short double-press window that locks
+/// hands-free recording — so a shortcut typed on the hotkey produces no text.
 ///
 /// macOS disables a tap that is slow to respond or that user input disables.
 /// The monitor re-enables it, with backoff when that does not stick, checks
@@ -46,6 +47,9 @@ final class HotkeyMonitor {
     private var recovery = TapRecovery()
     private var pendingRetry: DispatchWorkItem?
     private var watchdog: Timer?
+    /// A quick tap's double-press window: while it runs, a second press
+    /// locks hands-free recording; on lapse the tap is discarded.
+    private var tapTimer: Timer?
 
     /// Called on the main thread when the tap's health changes.
     var onHealthChange: ((HotkeyHealth) -> Void)?
@@ -64,6 +68,7 @@ final class HotkeyMonitor {
     /// `newKey` records. A recording in progress on the old key is cancelled.
     func setKey(_ newKey: HotkeyKey) {
         guard newKey != key else { return }
+        invalidateTapTimer()
         let action = gesture.reset()
         key = newKey
         if let action { emit(action) }
@@ -119,6 +124,7 @@ final class HotkeyMonitor {
     func stop() {
         watchdog?.invalidate()
         watchdog = nil
+        invalidateTapTimer()
         pendingRetry?.cancel()
         pendingRetry = nil
         if let tap {
@@ -153,8 +159,28 @@ final class HotkeyMonitor {
         switch action {
         case .start: onEvent?(.pressed)
         case .transcribe: onEvent?(.released)
+        case .tap: armDoublePressTimer()
         case .cancel: onEvent?(.cancelled)
         }
+    }
+
+    /// A quick tap keeps recording while the double-press window runs. On
+    /// lapse the gesture discards it; a second press before then locks
+    /// hands-free inside the gesture, needing nothing here.
+    private func armDoublePressTimer() {
+        invalidateTapTimer()
+        let timer = Timer(timeInterval: Gesture.doublePressWindow, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.invalidateTapTimer()
+            if let action = self.gesture.timeout() { self.emit(action) }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        tapTimer = timer
+    }
+
+    private func invalidateTapTimer() {
+        tapTimer?.invalidate()
+        tapTimer = nil
     }
 
     // MARK: - Matching
