@@ -303,10 +303,13 @@ extension WhisperKitTranscriber {
 
     /// Mirrors WhisperKit's tokenizer choice for the registry's variants:
     /// "openai_whisper-base.en" → "whisper-base.en"; every large-v3 build,
-    /// including turbo, uses "whisper-large-v3".
+    /// including turbo, compressed and distil builds, uses "whisper-large-v3".
     private static func tokenizerName(for variant: String) -> String {
         let name = variant.replacingOccurrences(of: "openai_", with: "")
-        return name.hasPrefix("whisper-large-v3") ? "whisper-large-v3" : name
+        if name.hasPrefix("whisper-large-v3") || name.hasPrefix("distil-whisper_distil-large-v3") {
+            return "whisper-large-v3"
+        }
+        return name
     }
 
     /// True if `url` or anything under it is an iCloud dataless placeholder.

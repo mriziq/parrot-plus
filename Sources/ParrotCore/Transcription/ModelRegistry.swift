@@ -43,6 +43,42 @@ package enum ModelRegistry {
             languages: ["multi"],
             recommended: false
         ),
+        TranscriptionModel(
+            id: "whisper-base",
+            displayName: "Whisper Base",
+            engine: .whisperKit,
+            whisperKitID: "openai_whisper-base",
+            sizeMB: 147,
+            languages: ["multi"],
+            recommended: false
+        ),
+        TranscriptionModel(
+            id: "whisper-large-v3-turbo-632mb",
+            displayName: "Whisper Large v3 Turbo (Compressed)",
+            engine: .whisperKit,
+            whisperKitID: "openai_whisper-large-v3-v20240930_turbo_632MB",
+            sizeMB: 646,
+            languages: ["multi"],
+            recommended: false
+        ),
+        TranscriptionModel(
+            id: "whisper-large-v3-626mb",
+            displayName: "Whisper Large v3 (Compressed)",
+            engine: .whisperKit,
+            whisperKitID: "openai_whisper-large-v3-v20240930_626MB",
+            sizeMB: 627,
+            languages: ["multi"],
+            recommended: false
+        ),
+        TranscriptionModel(
+            id: "whisper-distil-large-v3-turbo-600mb",
+            displayName: "Whisper Distil Large v3 Turbo (Compressed)",
+            engine: .whisperKit,
+            whisperKitID: "distil-whisper_distil-large-v3_turbo_600MB",
+            sizeMB: 607,
+            languages: ["multi"],
+            recommended: false
+        ),
     ]
 
     package static func find(_ id: String) -> TranscriptionModel? {

@@ -98,8 +98,12 @@ struct TranscriptionSection: View {
     /// `parrot-bench transcription` on an M4 Pro (#43).
     private static let tradeOff: [String: String] = [
         "whisper-base.en": "Fastest",
+        "whisper-base": "Fast",
         "whisper-small.en": "More accurate, slower",
         "whisper-small": "Fast",
+        "whisper-distil-large-v3-turbo-600mb": "Very accurate, fast",
+        "whisper-large-v3-turbo-632mb": "Most accurate, slower",
+        "whisper-large-v3-626mb": "Most accurate, slowest",
         "whisper-large-v3-turbo": "Most accurate, slowest",
     ]
 
