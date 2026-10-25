@@ -13,7 +13,7 @@ The app requires macOS 14 or later on Apple Silicon. Whisper models are not
 bundled; the first run downloads the model the user chooses.
 
 `master` is the default branch. There are no release tags yet; the first
-release version is `0.1.0` and its tag is `v0.1.0`.
+production release version is `1.0.0` and its tag is `v1.0.0`.
 
 ## Agent approval boundary
 
@@ -82,11 +82,11 @@ secret values in the repository, logs, or chat.
 ## Dry run
 
 After the workflow changes are on `master`, get explicit approval and run
-**Actions → Release → Run workflow** from `master` with version `0.1.0` and
-leave **publish** off. The workflow signs, notarizes, and staples the app and
-DMG but uploads the DMG as a workflow artifact instead of creating a release.
-Download that artifact, mount it, launch the app, and test a dictation before
-creating the first tag.
+**Actions → Release → Run workflow** from `master` with a nonshipping version
+such as `0.1.0` and leave **publish** off. The workflow signs, notarizes, and
+staples the app and DMG but uploads the DMG as a workflow artifact instead of
+creating a release. Download that artifact, mount it, launch the app, and test
+a dictation before creating the first tag, `v1.0.0`.
 
 ## Local signed DMG
 
