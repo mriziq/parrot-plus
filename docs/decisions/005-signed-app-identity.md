@@ -1,8 +1,8 @@
 # ADR-005 :: Signed app identity
 
-Last updated: `2026.09.27`
+Last updated: `2026.10.24`
 
-> This ADR records the inherited app-identity decision. This local-development fork keeps bundle ID `com.humanitas.parrot` and `SMAppService`; public release signing, notarization, and automatic updates described in the original implementation are not part of this repo's workflow.
+> This ADR records the inherited app-identity decision. This fork keeps bundle ID `com.humanitas.parrot` and `SMAppService`. Release builds use Developer ID signing and notarization ([ADR-006](006-github-releases.md)); automatic updates are not configured.
 
 ## 1. Decision
 
@@ -20,7 +20,7 @@ macOS keys TCC grants to the code identity. A stable bundle ID and Developer ID 
 ## 3. Design Implications
 
 - Changing the bundle ID or signing team resets every user's permission grants; treat it as a breaking change.
-- Local builds can run directly from `build/Parrot Plus.app`; no update or release service is configured.
+- Local builds can run directly from `build/Parrot Plus.app`; release builds are signed, notarized, and published by the release workflow.
 - The running app asks for its own grants on first start and waits for them; it never exits over a missing Accessibility grant.
 
 ## 4. When to Revisit

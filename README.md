@@ -9,6 +9,12 @@
 
 Hold `fn`, speak, release. Your words appear at the cursor. On-device dictation for macOS.
 
+## Download
+
+[Download the latest release](https://github.com/mriziq/parrot-plus/releases/latest) (DMG, macOS 14+ on Apple Silicon).
+
+Open the DMG, drag **Parrot Plus** to **Applications**, then launch it and follow onboarding. The first run downloads the speech model you choose; audio and transcripts stay on this Mac.
+
 ## 1. Build and run locally
 
 This repository is set up for local feature development. Follow [the local development guide](docs/development.md) to test changes, build `build/Parrot Plus.app`, and run it without replacing any separately installed app. Requires macOS 14+ on Apple Silicon.

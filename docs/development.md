@@ -1,6 +1,6 @@
 # Local development
 
-The working loop for this fork is local: change a feature, test it, build the app bundle, and run that bundle on this Mac. There is no public-release step in the normal workflow.
+The working loop is local: change a feature, test it, build the app bundle, and run that bundle on this Mac. Releases are cut separately by pushing a version tag; see [releasing.md](releasing.md).
 
 ## Feature loop
 
@@ -27,7 +27,7 @@ The local bundle is not notarized; notarization is only needed to distribute the
 
 ## Release boundary
 
-Push feature branches or merged source to GitHub when requested; pushes only back up/share source and do not trigger a public build or release. To use new features on this Mac, build and open `build/Parrot Plus.app`. There is no CI or release automation in this local workflow.
+Pushes to `master` and pull requests run `.github/workflows/ci.yml`, which tests the package and verifies local-style app and DMG packaging without secrets. Pushing a tag matching `v*` runs `.github/workflows/release.yml`, which tests, builds, signs, notarizes, and publishes a DMG on GitHub Releases. Local use still comes from `build/Parrot Plus.app`; the release workflow is documented in [releasing.md](releasing.md).
 
 ## Code map
 
@@ -36,3 +36,6 @@ Push feature branches or merged source to GitHub when requested; pushes only bac
 - `Sources/parrot-bench/` contains developer-only benchmarks.
 - `Tests/ParrotTests/` and `Tests/ParrotBenchTests/` contain the Swift package tests.
 - `scripts/build-app.sh` assembles and signs the `.app` bundle; it is reused for the local build above.
+- `scripts/make-dmg.sh` packages the built app into a DMG for distribution.
+- `scripts/notarize.sh` submits an app zip or DMG to Apple's notary service.
+- `.github/workflows/release.yml` runs the tag-driven release build, signing, notarization, and GitHub release.

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: macos-15
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Test
+        run: swift test
+
+      - name: Build app
+        run: PARROT_TIMESTAMP=none scripts/build-app.sh dev
+
+      - name: Package DMG
+        run: scripts/make-dmg.sh dev

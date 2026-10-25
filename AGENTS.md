@@ -1,6 +1,6 @@
 # Agent workflow
 
-Parrot is a single-user, local-first macOS dictation app. The goal here is to improve the app and run the result on the developer's own Mac, not to publish public releases.
+Parrot is a single-user, local-first macOS dictation app. The local loop remains primary: improve the app and run the result on the developer's own Mac. Releases are cut from version tags by GitHub Actions.
 
 Before changing code, read `docs/development.md`, inspect the relevant source and tests, and check `git status`. Treat the Swift source as authoritative if documentation has drifted.
 
@@ -21,6 +21,6 @@ Before changing code, read `docs/development.md`, inspect the relevant source an
 
 ## External actions
 
-- This repo has no publishing or release workflow. A normal branch push only sends source to GitHub; local use still comes from `build/Parrot Plus.app`.
-- Do not notarize an app or change GitHub/Apple account settings unless the user explicitly asks.
+- Pushing a tag matching `v*` runs the release workflow, which signs, notarizes, and publishes a DMG; see `docs/releasing.md`. A normal branch push only sends source to GitHub.
+- Do not create tags or releases, or change GitHub/Apple account settings or signing secrets, unless the user explicitly asks.
 - Do not commit or push changes unless asked. Keep the handoff clear about what was tested and where the local app bundle was built.
