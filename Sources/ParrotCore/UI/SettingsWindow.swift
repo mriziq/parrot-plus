@@ -29,7 +29,7 @@ final class SettingsWindow {
             backing: .buffered,
             defer: false
         )
-        window.title = "Parrot Settings"
+        window.title = "Parrot Plus Settings"
         // The header inside says it; the title still names the window in
         // Mission Control and the window switcher.
         window.titleVisibility = .hidden
@@ -119,7 +119,7 @@ private struct SettingsHeader: View {
         VStack(spacing: 4) {
             BirdBadge()
                 .padding(.bottom, 12)
-            Text("Parrot · Settings")
+            Text("Parrot Plus · Settings")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.primary)
             Text("Version \(AppBundle.version)")
