@@ -12,6 +12,16 @@ checksum. See
 The app requires macOS 14 or later on Apple Silicon. Whisper models are not
 bundled; the first run downloads the model the user chooses.
 
+`master` is the default branch. There are no release tags yet; the first
+release version is `0.1.0` and its tag is `v0.1.0`.
+
+## Agent approval boundary
+
+Before an agent commits, pushes, manually dispatches a workflow, creates a
+tag, publishes a release, or changes GitHub or Apple account settings, it must
+get explicit user approval. Never put signing material, passwords, API keys, or
+secret values in the repository, logs, or chat.
+
 ## One-time setup
 
 1. Join the Apple Developer Program and create a **Developer ID Application**
@@ -50,7 +60,7 @@ bundled; the first run downloads the model the user chooses.
    git diff --check
    ```
 
-2. Tag the commit and push the tag:
+2. Get explicit approval, tag the commit, and push the tag:
 
    ```sh
    git tag -a v1.2.3 -m "Parrot Plus 1.2.3"
@@ -71,10 +81,12 @@ bundled; the first run downloads the model the user chooses.
 
 ## Dry run
 
-Run **Actions → Release → Run workflow** with a version such as `1.2.3` and
+After the workflow changes are on `master`, get explicit approval and run
+**Actions → Release → Run workflow** from `master` with version `0.1.0` and
 leave **publish** off. The workflow signs, notarizes, and staples the app and
 DMG but uploads the DMG as a workflow artifact instead of creating a release.
-Turn **publish** on to create the tag and release from the selected commit.
+Download that artifact, mount it, launch the app, and test a dictation before
+creating the first tag.
 
 ## Local signed DMG
 

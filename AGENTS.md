@@ -24,3 +24,11 @@ Before changing code, read `docs/development.md`, inspect the relevant source an
 - Pushing a tag matching `v*` runs the release workflow, which signs, notarizes, and publishes a DMG; see `docs/releasing.md`. A normal branch push only sends source to GitHub.
 - Do not create tags or releases, or change GitHub/Apple account settings or signing secrets, unless the user explicitly asks.
 - Do not commit or push changes unless asked. Keep the handoff clear about what was tested and where the local app bundle was built.
+
+## Shipping a release
+
+- `master` is the default branch. CI runs on pushes to `master` and pull requests; only a `v*` tag starts a signed release.
+- Read `docs/releasing.md` before a dry run or release. Never print, commit, or paste signing certificates, API keys, passwords, or secret values.
+- Get explicit approval before committing, pushing, manually dispatching a release workflow, creating a tag, or publishing a release.
+- For a dry run, push the approved workflow changes to `master`, then run **Release** from `master` with version `0.1.0` and `publish` off. Verify the artifact before considering a real release.
+- For the first real release, get approval again, create and push annotated tag `v0.1.0`, then verify the DMG, checksum, notarization, and release page as described in `docs/releasing.md`.
