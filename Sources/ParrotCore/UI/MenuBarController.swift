@@ -5,10 +5,11 @@ import AppKit
 /// (since we run as `.accessory` — no dock icon, no main window).
 ///
 /// The menu has named slots, top to bottom: `statusLine`, `modelLine`,
-/// `grantPermissionsItem`, `pasteLastTranscriptItem`, `settingsItem`,
-/// `quitItem`. Features update a slot rather than rebuilding the menu.
+/// `microphoneItem`, `grantPermissionsItem`, `pasteLastTranscriptItem`,
+/// `settingsItem`, `quitItem`. Features update a slot rather than rebuilding
+/// the menu.
 @MainActor
-final class MenuBarController {
+final class MenuBarController: NSObject, NSMenuDelegate {
     private static func readyStatus(_ key: HotkeyKey) -> String { "idle · hold \(key.shortName) to dictate" }
 
     private let statusItem: NSStatusItem
@@ -16,6 +17,11 @@ final class MenuBarController {
     let statusLine: NSMenuItem
     /// Slot: the loaded model.
     let modelLine: NSMenuItem
+    /// Slot: the input Parrot records from (#44), as a submenu.
+    let microphoneItem: NSMenuItem
+    /// What picking an input does; set by the daemon, which saves the setting.
+    var onSelectMicrophone: ((_ uid: String?, _ name: String?) -> Void)?
+    private var microphone = AudioSettings()
     /// Slot: reopens the onboarding window (#51). Shown in Parrot.app while
     /// a permission is missing.
     let grantPermissionsItem: NSMenuItem
@@ -55,6 +61,12 @@ final class MenuBarController {
         modelLine.isEnabled = false
         menu.addItem(modelLine)
 
+        microphoneItem = NSMenuItem(title: "microphone: System Default", action: nil, keyEquivalent: "")
+        let microphoneMenu = NSMenu()
+        microphoneMenu.autoenablesItems = false
+        microphoneItem.submenu = microphoneMenu
+        menu.addItem(microphoneItem)
+
         grantPermissionsItem = NSMenuItem(
             title: "Grant Permissions…",
             action: #selector(grantPermissionsClicked),
@@ -83,7 +95,10 @@ final class MenuBarController {
         )
         menu.addItem(quitItem)
 
+        super.init()
+
         statusItem.menu = menu
+        menu.delegate = self
         quitItem.target = self
         settingsItem.target = self
         pasteLastTranscriptItem.target = self
@@ -107,6 +122,60 @@ final class MenuBarController {
 
     func setModel(_ modelID: String) {
         modelLine.title = "model: \(modelID)"
+    }
+
+    func setMicrophone(_ audio: AudioSettings) {
+        microphone = audio
+        microphoneItem.title = "microphone: \(audio.displayName)"
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === statusItem.menu else { return }
+        rebuildMicrophoneMenu()
+    }
+
+    /// Lists the current inputs each time the menu opens, so a device plugged
+    /// in since the last time appears without a watcher.
+    private func rebuildMicrophoneMenu() {
+        guard let menu = microphoneItem.submenu else { return }
+        menu.removeAllItems()
+
+        let defaultName = InputDevice.defaultName
+        let systemDefault = NSMenuItem(
+            title: defaultName.map { "System Default (\($0))" } ?? "System Default",
+            action: #selector(microphoneClicked(_:)),
+            keyEquivalent: ""
+        )
+        systemDefault.target = self
+        systemDefault.state = microphone.device == nil ? .on : .off
+        menu.addItem(systemDefault)
+
+        let devices = InputDevice.all()
+            .filter { $0.uid != nil }
+            .sorted { ($0.name ?? "").localizedStandardCompare($1.name ?? "") == .orderedAscending }
+        if !devices.isEmpty { menu.addItem(.separator()) }
+        for device in devices {
+            guard let uid = device.uid else { continue }
+            let item = NSMenuItem(title: device.name ?? "Microphone", action: #selector(microphoneClicked(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = uid
+            item.state = uid == microphone.device ? .on : .off
+            menu.addItem(item)
+        }
+
+        if let uid = microphone.device, !devices.contains(where: { $0.uid == uid }) {
+            menu.addItem(.separator())
+            let missing = NSMenuItem(
+                title: "\(microphone.name ?? "Selected microphone") (not connected; using System Default)",
+                action: nil,
+                keyEquivalent: ""
+            )
+            missing.state = .on
+            missing.isEnabled = false
+            menu.addItem(missing)
+        }
+
+        microphoneItem.title = "microphone: \(microphone.displayName)"
     }
 
     func setLastTranscript(_ text: String) {
@@ -147,6 +216,14 @@ final class MenuBarController {
 
     @objc private func settingsClicked() {
         onOpenSettings?()
+    }
+
+    @objc private func microphoneClicked(_ sender: NSMenuItem) {
+        guard let uid = sender.representedObject as? String else {
+            onSelectMicrophone?(nil, nil)
+            return
+        }
+        onSelectMicrophone?(uid, sender.title)
     }
 
     @objc private func grantPermissionsClicked() {

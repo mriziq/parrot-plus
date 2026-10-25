@@ -25,6 +25,10 @@ package final class AudioCapture {
 
     let mode: CaptureMode
 
+    /// The chosen input's stable UID (#44); nil follows the system default.
+    /// Read at each press, so a change applies from the next one.
+    package var deviceUID: String?
+
     /// Counts and timings of the last finished capture, including press to
     /// first sample. Nil until one finishes.
     package private(set) var lastStats: CaptureBuffer.Stats?
@@ -44,8 +48,9 @@ package final class AudioCapture {
     private let converters = ConverterCache(targetFormat: AudioCapture.targetFormat)
     private let buffer = CaptureBuffer()
 
-    package init(mode: CaptureMode = .standard) {
+    package init(mode: CaptureMode = .standard, deviceUID: String? = nil) {
         self.mode = mode
+        self.deviceUID = deviceUID
         self.input = mode.makeInput()
         input.prepareIdle()
     }
@@ -66,7 +71,7 @@ package final class AudioCapture {
 
         // Check the device before any input touches it: a missing input or a
         // 0 Hz / 0 channel format raises an ObjC exception in AVAudioEngine.
-        let device = try InputDevice.current()
+        let device = try InputDevice.selected(uid: deviceUID)
 
         converters.resetAll()
         buffer.reset(startedAt: startedAt)

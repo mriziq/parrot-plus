@@ -75,6 +75,24 @@ final class HALInputTests: XCTestCase {
         XCTAssertFalse(HALInput.sameInput(mic, InputDevice(sampleRate: 48_000, channels: 2, id: 42)))
     }
 
+    func testAPinnedDeviceKeepsRecordingWhenTheDefaultMoves() {
+        var pinned = mic
+        pinned.followsDefault = false
+        XCTAssertEqual(
+            HALInput.classify(built: pinned, current: DeviceWatcher.Snapshot(defaultInput: 43, isAlive: true, device: mic)),
+            .none
+        )
+    }
+
+    func testAPinnedDeviceGoingAwayIsStillARouteChange() {
+        var pinned = mic
+        pinned.followsDefault = false
+        XCTAssertEqual(
+            HALInput.classify(built: pinned, current: DeviceWatcher.Snapshot(defaultInput: 42, isAlive: false, device: mic)),
+            .route
+        )
+    }
+
     // MARK: Failure without hardware
 
     func testStartingOnADeviceThatDoesNotExistThrowsInsteadOfCrashing() {

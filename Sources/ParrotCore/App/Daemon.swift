@@ -87,7 +87,7 @@ public enum Daemon {
         app.setActivationPolicy(.accessory)
 
         let monitor = HotkeyMonitor(key: options.hotkey ?? settings.current.hotkey.key, debug: options.debugHotkey)
-        let capture = AudioCapture()
+        let capture = AudioCapture(deviceUID: settings.current.audio.device)
         let overlay: RecordingOverlay? = options.noOverlay ? nil : RecordingOverlay()
         if let overlay {
             capture.onLevel = { level in overlay.pushLevel(level) }
@@ -95,7 +95,14 @@ public enum Daemon {
         let menuBar = MenuBarController(modelID: model.id)
         let settingsWindow = SettingsWindow(store: settings)
         menuBar.onOpenSettings = { settingsWindow.show() }
+        menuBar.onSelectMicrophone = { [weak settings] uid, name in
+            settings?.update {
+                $0.audio.device = uid
+                $0.audio.name = name
+            }
+        }
         menuBar.setHotkey(monitor.key)
+        menuBar.setMicrophone(settings.current.audio)
         // Parrot.app sets up the hotkey, languages and permissions, and
         // explains each permission before macOS asks (#51).
         OnboardingWindow.startIfNeeded(store: settings, menuBar: menuBar)
@@ -180,6 +187,12 @@ public enum Daemon {
             if old.language != new.language {
                 // Read per dictation by dictionaryContext.
                 Log.info("language: \(new.language.code ?? "automatic"); applies at next press")
+            }
+            if old.audio != new.audio {
+                // Read at each press by AudioCapture.
+                capture.deviceUID = new.audio.device
+                menuBar.setMicrophone(new.audio)
+                Log.info("microphone: \(new.audio.displayName); applies at next press")
             }
         }
         settings.startWatching()

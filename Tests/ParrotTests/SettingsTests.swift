@@ -15,7 +15,7 @@ final class SettingsTests: XCTestCase {
     }
 
     func testRemovedSettingsSectionsAreIgnored() throws {
-        XCTAssertEqual(try decode(#"{"audio": {"device": "old"}, "stats": {"enabled": true}}"#), Settings())
+        XCTAssertEqual(try decode(#"{"stats": {"enabled": true}}"#), Settings())
     }
 
     func testUnknownKeysAreIgnored() throws {
@@ -66,6 +66,19 @@ final class SettingsFieldTests: XCTestCase {
         XCTAssertEqual(try decode(#"{"dictionary": {}}"#).dictionary.examples, [:])
         let settings = try decode(#"{"dictionary": {"examples": {"en": "One sentence.", "pt-BR": "Uma frase."}}}"#)
         XCTAssertEqual(settings.dictionary.examples, ["en": "One sentence.", "pt-BR": "Uma frase."])
+    }
+
+    func testMicrophoneDecodesAndDefaultsToTheSystemDefault() throws {
+        XCTAssertNil(try decode("{}").audio.device)
+        let settings = try decode(#"{"audio": {"device": "BuiltInMicrophoneDevice", "name": "MacBook Pro Microphone"}}"#)
+        XCTAssertEqual(settings.audio.device, "BuiltInMicrophoneDevice")
+        XCTAssertEqual(settings.audio.name, "MacBook Pro Microphone")
+    }
+
+    func testAMissingMicrophoneShowsItsSavedName() throws {
+        let settings = try decode(#"{"audio": {"device": "no-such-uid", "name": "USB Mic"}}"#)
+        XCTAssertNil(settings.audio.connected)
+        XCTAssertEqual(settings.audio.displayName, "USB Mic (not connected)")
     }
 }
 

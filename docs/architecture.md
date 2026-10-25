@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: `2026.09.28`
+Last updated: `2026.10.24`
 
 > This document is the target structure. Contributors and agents working on an issue read it first: it says where each kind of change belongs, so parallel work composes instead of colliding.
 
@@ -88,7 +88,9 @@ Sources/ParrotCore/
     TextInjector.swift          delivery into the focused field (paste or typed Unicode)
   Audio/
     AudioCapture.swift          capture: permission and device checks, format conversion, per-capture stats
+    AudioSettings.swift         the chosen input device's UID (#44); nil follows the system default
     CaptureInput.swift          CaptureMode and the protocol each way of running the mic implements
+    InputDevice.swift           the default and chosen input, its Core Audio id/UID/name, and the input-capable device list
     HALInput.swift              the Core Audio AUHAL input unit (default), per press or prepared between presses, and the device watcher
     HostClock.swift             host time in nanoseconds, to compare a press with Core Audio buffer timestamps
     SilenceTrimmer.swift        cuts leading and trailing silence before transcription (pure, tested)
@@ -176,13 +178,13 @@ Features plug in at one of these points. They do not add branches to `DictationC
 | Delivery decision | chooses injector or fallback from the `FocusSnapshot` and the result | secure fields and focus drift |
 | Delivery spacing | `Spacing.spaced`: a trailing space always, a leading one when the text before the cursor needs it | a space between dictations |
 | `DictationObserver` | `dictationStarted`, `dictationTranscribing`, `dictationFinished(DictationResult)`, `dictationFailed`; each has an empty default | overlay, menu bar, latency |
-| `Settings` sections | a field in `Settings` plus a view in `UI/Sections/` | hotkey, model, language, dictionary editor |
+| `Settings` sections | a field in `Settings` plus a view in `UI/Sections/` | hotkey, model, language, microphone, dictionary editor |
 
 ## 5. Settings
 
 One file: `~/.config/parrot/settings.json` (or `$XDG_CONFIG_HOME/parrot/`), a `Codable` `Settings` value. A missing key takes its default. Writes are atomic. `SettingsStore` watches the directory, so hand edits apply live, and a file that fails to parse keeps the last good settings and logs one line.
 
-Subsystems observe the settings they care about and reconfigure themselves. Launch at login carries no settings. CLI flags override a single foreground run and are never persisted.
+Subsystems observe the settings they care about and reconfigure themselves. Launch at login carries no settings. CLI flags override a single foreground run and are never persisted. The microphone is one setting: the menu bar's Microphone submenu and the Settings window both write `audio.device`.
 
 ## 6. Files on disk
 

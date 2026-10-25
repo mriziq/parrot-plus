@@ -18,6 +18,33 @@ final class AudioCaptureTests: XCTestCase {
         XCTAssertNoThrow(try InputDevice.validate(sampleRate: 44_100, channels: 1))
     }
 
+    // MARK: Device selection
+
+    func testPickingTheSavedDeviceDoesNotFollowTheDefault() throws {
+        let builtIn = InputDevice(sampleRate: 48_000, channels: 1, id: 1, uid: "built-in", name: "Built-in")
+        let usb = InputDevice(sampleRate: 48_000, channels: 2, id: 2, uid: "usb", name: "USB")
+        let chosen = try XCTUnwrap(InputDevice.pick(uid: "usb", from: [builtIn, usb], defaultID: 1))
+        XCTAssertEqual(chosen.id, 2)
+        XCTAssertFalse(chosen.followsDefault)
+    }
+
+    func testAMissingSavedDeviceFallsBackToTheDefault() throws {
+        let builtIn = InputDevice(sampleRate: 48_000, channels: 1, id: 1, uid: "built-in", name: "Built-in")
+        let usb = InputDevice(sampleRate: 48_000, channels: 2, id: 2, uid: "usb", name: "USB")
+        let fallback = try XCTUnwrap(InputDevice.pick(uid: "gone", from: [builtIn, usb], defaultID: 1))
+        XCTAssertEqual(fallback.id, 1)
+        XCTAssertTrue(fallback.followsDefault)
+        XCTAssertNil(InputDevice.pick(uid: nil, from: [builtIn, usb], defaultID: nil))
+    }
+
+    func testNoSavedDevicePicksTheDefault() throws {
+        let builtIn = InputDevice(sampleRate: 48_000, channels: 1, id: 1, uid: "built-in", name: "Built-in")
+        let usb = InputDevice(sampleRate: 48_000, channels: 2, id: 2, uid: "usb", name: "USB")
+        let chosen = try XCTUnwrap(InputDevice.pick(uid: nil, from: [builtIn, usb], defaultID: 2))
+        XCTAssertEqual(chosen.id, 2)
+        XCTAssertTrue(chosen.followsDefault)
+    }
+
     // MARK: Route change
 
     func testRouteChangeDiscardsThePartialCapture() {

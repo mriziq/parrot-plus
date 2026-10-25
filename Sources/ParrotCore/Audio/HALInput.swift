@@ -113,7 +113,10 @@ final class HALInput: CaptureInput {
     /// Builds the unit for `device` unless it is already built for it and
     /// nothing has changed since. On `control`.
     private func prepare(device: InputDevice) throws {
-        if unit != nil, !stale, built.map({ Self.sameInput($0, device) }) == true {
+        if unit != nil, !stale, let built, Self.sameInput(built, device) {
+            // The same input, but it may have stopped or started following
+            // the system default; what a notification means depends on that.
+            self.built = device
             return
         }
         teardown()
@@ -266,7 +269,8 @@ final class HALInput: CaptureInput {
     /// What `current`, a fresh read of the input, means for a unit built for
     /// `built`.
     static func classify(built: InputDevice, current: DeviceWatcher.Snapshot) -> Change {
-        guard current.defaultInput == built.id, current.isAlive else { return .route }
+        if built.followsDefault, current.defaultInput != built.id { return .route }
+        guard current.isAlive else { return .route }
         if sameInput(built, current.device) { return .none }
         guard (try? InputDevice.validate(sampleRate: current.device.sampleRate, channels: current.device.channels)) != nil else {
             return .route
